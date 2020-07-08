@@ -1,42 +1,109 @@
 import React, { Component } from "react";
-import Section from "./components/section/Section";
-import FeedbackOptions from "./components/feedbackOptions/FeedbackOptions";
-import Statistic from "./components/statistic/Statistic";
+import { v4 as uuidv4 } from "uuid";
+import Phonebook from "./phonebook/Phonebook";
+import ContactList from "./contactList/ContactList";
+import withTheme from "./hoc/withTheme";
 
 class App extends Component {
   state = {
-    good: 0,
-    neutral: 0,
-    bad: 0,
+    contacts: [
+      { id: "id-1", name: "Rosie Simpson", number: "459-12-56" },
+      { id: "id-2", name: "Hermione Kline", number: "443-89-12" },
+      { id: "id-3", name: "Eden Clements", number: "645-17-79" },
+      { id: "id-4", name: "Annie Copeland", number: "227-91-26" },
+    ],
+    filter: "",
+    name: "",
+    number: "",
   };
 
-  // counter = (e) => console.log(e.target.name);
-  counter = (e) =>
-    this.setState({ [e.target.name]: this.state[e.target.name] + 1 });
+  componentDidMount() {
+    const contactStorage = localStorage.getItem("contacts");
+    if (contactStorage) {
+      this.setState({ contacts: JSON.parse(contactStorage) });
+    }
+  }
 
-  getTotal = () =>
-    Object.values(this.state).reduce((acc, item) => (acc += item), 0);
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.contacts !== this.state.contacts) {
+      localStorage.setItem("contacts", JSON.stringify(this.state.contacts));
+    }
+  }
 
-  positivePercentage = () => {
-    // console.log(this.state.good);
-    // console.log(this.getTotal());
-    return Math.round((this.state.good / this.getTotal()) * 100);
+  handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Submit");
+    console.log(this.state);
+    const contact = {
+      id: uuidv4(),
+      name: this.state.name,
+      number: this.state.number,
+    };
+    this.state.contacts.find(
+      ({ name }) => name === contact.name && contact.name
+    )
+      ? alert(`${contact.name} already exists`)
+      : this.setState((prev) => {
+          return {
+            contacts: [...prev.contacts, contact],
+          };
+        });
+    this.setState({ name: "", number: "" });
+  };
+
+  handleChange = (e) => {
+    const { name, value } = e.target;
+    console.log(value);
+    this.setState({ [name]: value });
+  };
+
+  filterByName = () => {
+    return this.state.contacts.filter((contact) =>
+      contact.name.toLowerCase().includes(this.state.filter.toLowerCase())
+    );
+  };
+
+  deleteContact = (id) => {
+    this.setState((prev) => {
+      return {
+        contacts: prev.contacts.filter((contact) => contact.id !== id),
+      };
+    });
   };
 
   render() {
+    const filterContact = this.filterByName();
+    // console.log(filterContact);
+    console.log(this.props);
+    const {
+      themeConfig: { fontColor, bodybg },
+    } = this.props;
+    const { filter } = this.state;
     return (
-      <Section title="Please leave feedback">
-        <FeedbackOptions counter={this.counter} />
-        <Statistic
-          good={this.state.good}
-          neutral={this.state.neutral}
-          bad={this.state.bad}
-          total={this.getTotal()}
-          positivePercentage={this.positivePercentage()}
+      <div style={{ color: fontColor, background: bodybg }}>
+        <button
+          type="submit"
+          style={{ marginLeft: "30px", marginTop: "30px" }}
+          onClick={this.props.toggleTheme}
+        >
+          Change theme
+        </button>
+        <Phonebook
+          onSubmit={this.handleSubmit}
+          onChange={this.handleChange}
+          name={this.state.name}
+          number={this.state.number}
         />
-      </Section>
+
+        <ContactList
+          contacts={filterContact}
+          filter={filter}
+          onChange={this.handleChange}
+          deleteContact={this.deleteContact}
+        />
+      </div>
     );
   }
 }
 
-export default App;
+export default withTheme(App);
